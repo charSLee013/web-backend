@@ -1,0 +1,32 @@
+// type ImageReq {
+// 	Image []byte `form:"image"` // 图片的二进制数据
+// 	MD5   string `form:"md5"`   // 文件的MD5校验码
+// }
+
+type Illust {
+	Title      string `json:"title"`       // 画集的名称
+	IllustID   int64  `json:"illust_id"`   // 画集的ID
+	ThumbURL   string `json:"thumb_url"`   // 缩略图URL
+	UserName   string `json:"user_name"`   // 用户名称
+	ProfileImg string `json:"profile_img"` // 用户头像的URL
+	Rank       int    `json:"rank"`        // 相似度的排名
+}
+
+type ImageResp {
+	Error     string   `json:"error"`      // 如果没有错误为null,如果有错误则为错误信息
+	ErrorCode int      `json:"error_code"` // 业务码
+	Contents  []Illust `json:"contents"`   // 列表，类型为 Illust
+	Tags      []string `json:"tags"`       // 标签列表，类型为 string
+}
+
+@server (
+	prefix:     /v1 // 对当前 ImagePredict 语法块下的所有路由，新增 /v1 路由前缀
+	group:      imagePredction // 对当前 ImagePredict 语法块下的所有路由，路由归并到 imagePredction 目录下
+	middleware: MD5Check, TypeCheck // 对当前 ImagePredict 语法块下的所有路由添加中间件，用于图片的md5检测和图片类型检测
+	maxBytes:   5242880 // 对当前 ImagePredict 语法块下的所有路由添加请求体大小控制，单位为 byte, 最大为 5MB
+)
+service ImagePredict {
+	@handler predict
+	// post /predict (ImageReq) returns (ImageResp)
+	post /predict returns (ImageResp)
+}

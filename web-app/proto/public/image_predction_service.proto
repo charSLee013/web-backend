@@ -1,0 +1,30 @@
+// image_prediction.proto
+syntax = "proto3";
+
+package image_prediction;
+
+option go_package = "web-app/proto/public/image_prediction";
+
+service ImagePrediction {
+  // Change the return type to stream ImageVectorResponse
+  rpc Predict (stream ImagePredictionRequest) returns (stream ImageVectorResponse);
+}
+
+message ImagePredictionRequest {
+  bytes image = 1; // the raw image data
+  string model = 2; // the name of the model to use
+  // Add an int field to indicate the identity and order of the request
+  int32 id = 3;
+}
+
+// Rename ImageVector to ImageVectorResponse
+message ImageVectorResponse {
+  repeated float vector = 1 [json_name = "image_vector"];
+  // Add an int field to indicate the identity and order of the response
+  int32 id = 2;
+}
+
+message Error {
+  int32 code = 1 [json_name = "code"]; // the error code
+  string message = 2 [json_name = "message"]; // the error message
+}
