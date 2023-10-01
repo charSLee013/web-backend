@@ -20,6 +20,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var configFile = flag.String("f", "etc/imagepredict.yaml", "the config file")
@@ -39,19 +40,20 @@ func main() {
 	conf.MustLoad(*milvusConfig, &m)
 
 	// 测试是否能正常连上milvus
-	timeout_ctx,cancel := context.WithTimeout(ctx,5*time.Second)
+	timeout_ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
 	milvusClient, err := client.NewGrpcClient(timeout_ctx, fmt.Sprintf("%s:%s", m.Host, m.Port))
 	if err != nil {
-		logx.Errorf("failed to connect to Milvus[%v]:%v",m.Host, err.Error())
+		logx.Errorf("failed to connect to Milvus[%v]:%v", m.Host, err.Error())
 		os.Exit(1)
 	} else {
 		logx.Infof("Connect to milvus server %s success", m.Host)
 	}
-	err = milvusClient.LoadCollection(ctx, m.CollectionName, false)
+	err = milvusClient.LoadCollection(timeout_ctx, m.CollectionName, true)
 	if err != nil {
-		logx.Errorf("failed to load collection:%v", err.Error())
+		logx.Errorf("failed to load collection[%s]: %v", m.CollectionName, err.Error())
+		os.Exit(-1)
 	}
 
 	// 加载redis配置文件
@@ -88,7 +90,7 @@ func main() {
 
 	if r.Host != "" {
 		rds = redis.MustNewRedis(r)
-		if !rds.PingCtx(ctx) {
+		if !rds.PingCtx(timeout_ctx) {
 			// 无法ping通则代表redis连接失败
 			rds = nil
 			logx.Errorf("Cannot ping redis server: %v", r.Host)
@@ -98,12 +100,12 @@ func main() {
 		logx.Info("Disable redis cache server")
 	}
 
-	server := rest.MustNewServer(c.RestConf)
+	// 允许localhost:8080 进行跨域请求
+	server := rest.MustNewServer(c.RestConf, rest.WithCustomCors(nil, nil, "http://localhost:8080"))
 	defer server.Stop()
 
 	// 连接后端的图像预测功能
-	
-	grpc_conn, err := grpc.Dial(c.ImagePredictServer, grpc.WithInsecure())
+	grpc_conn, err := grpc.DialContext(timeout_ctx, c.ImagePredictServer, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logx.Errorf("Cannot connect img predciton serving to %v", c.ImagePredictServer)
 	}
@@ -111,6 +113,7 @@ func main() {
 	// 创建gRPC客户端
 	client := pb.NewImagePredictionClient(grpc_conn)
 	ctx := svc.NewServiceContext(c, rds, milvusClient, client)
+	logx.Infof("Connect to grpc server %v success", c.ImagePredictServer)
 
 	handler.RegisterHandlers(server, ctx)
 

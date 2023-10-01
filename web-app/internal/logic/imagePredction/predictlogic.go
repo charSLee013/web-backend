@@ -19,8 +19,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/milvus-io/milvus-sdk-go/v2/client"
 	"github.com/milvus-io/milvus-sdk-go/v2/entity"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
 	pb "web-app/proto/public"
 
@@ -58,12 +56,12 @@ func (l *PredictLogic) Predict() (resp *types.ImageResp, err error) {
 	var illustIds []int64
 	// 尝试从缓存中获取
 	hit, err := l.getPredctionRespFromCache()
-	if err == nil {
+	if err == nil && hit != nil{
 		illustIds = hit
 	}
 
 	// 没有缓存，走一篇正常流程获取图片最相似的前N张图片的ID
-	if len(illustIds) < 10 {
+	if len(illustIds) < 1 {
 		// 将图片转换成特征向量
 		vector, err := l.convetImageToVec()
 		if err != nil {
@@ -145,6 +143,9 @@ func (l *PredictLogic) getPredctionRespFromCache() ([]int64, error) {
 	result, err := l.svcCtx.Redis.GetCtx(timeout_ctx, key)
 	if err != nil {
 		return nil, err
+	}
+	if len(result) == 0{
+		return nil, nil
 	}
 	// 将逗号分隔的字符串转换为字符串切片
 	stringSlice := strings.Split(result, ",")
@@ -318,11 +319,7 @@ func readAllBytes(file multipart.File) ([]byte, error) {
 }
 
 func (l *PredictLogic) sendPredictionRequest(ctx context.Context, request *pb.ImagePredictionRequest) (*pb.ImageVectorResponse, error) {
-	conn, _ := grpc.Dial("127.0.0.1:1301", grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	defer conn.Close()
-	client := pb.NewImagePredictionClient(conn)
-
-	stream, err := client.Predict(ctx)
+	stream, err := l.svcCtx.PredctionGRPC.Predict(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("调用Predict方法失败：%v", err)
 	}

@@ -42,7 +42,7 @@ def upload_image(api_url, image_path):
             print(
                 f"图片 {image_path} 上传成功！返回错误码: {error_code}\t")
             if error_code == 0 or error_code == '0':
-                pprint(response.json()['contents'])
+                pprint(response.json())
             else:
                 print(
                     f"错误信息: { response.json()['error']},请你稍后再试"

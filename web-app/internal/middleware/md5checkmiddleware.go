@@ -50,7 +50,7 @@ func (m *MD5CheckMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		calculatedMD5 := hex.EncodeToString(hash.Sum(nil))
-
+		logx.Infof("Want image md5 sum is %s, but get %s",calculatedMD5,md5Sum)
 		// 判断图片的md5值是否与参数一致
 		if !strings.EqualFold(md5Sum, calculatedMD5) {
 			// ErrorCode: 1002 MD5校验不通过
