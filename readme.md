@@ -9,15 +9,15 @@
 ## 从源代码中编译
 请确保安装好 go.18+ 版本，你可以在 [https://go.dev/dl/](https://go.dev/dl/) 选择合适的版本和架构安装
 ```shell
-git clone xxxx
-cd web-app/
+git clone https://github.com/charSLee013/web-backend.git
+cd web-backend/
 go build
 ```
 
 ## 构建成容器
 请确保安装好 docker 和 docker-compose后，执行下面语句进行构建
 ```shell
-docker build -t golnag-app .
+docker build -t web-backend .
 ```
 
 
@@ -33,14 +33,14 @@ Port: 8888
 MaxConns: 1000
 
 # mysql的DSN写法
-DataSource: <user>:<password>@tcp(<mysql host>:<mysql port>)/<database>?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
+DataSource: <user>:<password>@tcp(<mysql host>:<mysql port>)/<database>?charset=utf8mb4&parseTime=true
 Table: pixiv_illust
-ImagePredictServer: 127.0.0.1:1301
+ImagePredictServer: <img-predction host>:<and port>
 ```
 
 * `r`: redis 方面的配置文件，默认路径是 `etc/redis.yaml`，配置如下
 ```yaml
-Host: "127.0.0.1:6379"
+Host: "<redis host>:<redis port>"
 Type: "node"
 Pass: <redis password>
 ```
